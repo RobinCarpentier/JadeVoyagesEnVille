@@ -1,0 +1,6 @@
+{
+    "java.project.referencedLibraries": [
+      "lib/opencsv-5.9.jar",
+      "lib/JadeUPHF.jar"
+    ]
+  }
