@@ -118,6 +118,7 @@ public class TravellerAgent extends GuiAgent {
 
         if (!result) {
             println("no journey found !!!");
+            this.myJourney = null;
         }
         if (result) {
             //oter les voyages demarrant trop tard (1h30 apres la date de depart souhaitee)

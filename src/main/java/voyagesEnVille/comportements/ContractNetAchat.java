@@ -134,6 +134,11 @@ public class ContractNetAchat extends ContractNetInitiator {
         //map <name to the agent (agence), list of journeys to buy to it>
         Map<String, ArrayList<Journey>> voyagesAAcheter = new HashMap<>();
         var journey = monAgent.getMyJourney();
+
+        if (journey == null) {
+            return;
+        }
+
         journey.getJourneys().forEach(j ->
                 voyagesAAcheter.compute(j.getProposedBy(),
                         (agence, list) -> {

@@ -3,6 +3,7 @@ package voyagesEnVille.agents;
 import jade.core.AID;
 import jade.core.AgentServicesTools;
 import jade.core.behaviours.ReceiverBehaviour;
+import jade.core.messaging.TopicManagementHelper;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
@@ -68,6 +69,14 @@ public class AgenceAgent extends GuiAgent {
         addBehaviour(new ReceiverBehaviour(this, -1, MessageTemplate.MatchTopic(topic), true, (a, m)->{
                     println("Message recu sur le topic " + topic.getLocalName() + ". Contenu " + m.getContent()
                             + " emis par :  " + m.getSender().getLocalName());
+
+                    String[] points = m.getContent().split(",");
+                    String start = points[0];
+                    String stop = points[1];
+
+                    println("Start : " + start);
+
+                    catalog.removeIf(j -> j.getStart().equalsIgnoreCase(start) && j.getStop().equalsIgnoreCase(stop));
                 }));
 
         //FIN REGLAGE ECOUTE DE LA RADIO
@@ -117,7 +126,7 @@ public class AgenceAgent extends GuiAgent {
     private void fromCSV2Catalog(final String file) {
         Meteo service = new Meteo();
 
-        Meteo.WeatherData weather = service.getWeatherByCity("La Valette");
+        Meteo.WeatherData weather = service.getWeatherByCity("Valenciennes");
         if (weather != null && weather.isValid()) {
             System.out.println("\n" + weather.getWindSpeed());
 
@@ -160,7 +169,7 @@ public class AgenceAgent extends GuiAgent {
             Journey firstJourney = new Journey(origine, destination, means, departureDate, duration, cost, co2, confort);
             firstJourney.setProposedBy(this.getLocalName());
             int nbPlaces = switch (means) {
-                case "bike" -> 50;
+                case "bike" -> 20;
                 case "car" -> 3;
                 case "bus" -> 50;
                 case "tram" -> 200;
