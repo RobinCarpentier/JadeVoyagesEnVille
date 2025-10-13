@@ -186,33 +186,47 @@ public class ContractNetVente extends ContractNetResponder {
         ArrayList<Journey> list = catalog.getJourneysFrom(j.getStart());
         String prompt;
         String response;
+
+        Boolean ollama = false;
     
         if(list == null || list.isEmpty()) {
-            // System.out.println("Aucun voyage trouvé depuis : " + j.getStart()); // à transformer avec Ollama
-            prompt = """
-                    Write a polite and natural sentence to tell a user that there are no trips in the catalog
-                    """;
-            response = generateResponse(prompt);
-            System.out.println(response+" : "+j.getStart());
+            if(!ollama) {
+                System.out.println("Aucun voyage trouvé depuis : " + j.getStart());
+            }
+            else {
+                prompt = """
+                        Write a polite and natural sentence to tell a user that there are no trips in the catalog
+                        """;
+                response = generateResponse(prompt);
+                System.out.println(response+" : "+j.getStart());
+            }
             return;
         }
     
-        // System.out.println("Tentative de suppression pour : " + j); // à transformer avec Ollama
-        prompt = """
-                    Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
-                    """;
-        response = generateResponse(prompt);
-        System.out.println(response+" : "+j);
+        if(!ollama) {
+            System.out.println("Tentative de suppression pour : " + j);
+        }
+        else {
+            prompt = """
+                        Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
+                        """;
+            response = generateResponse(prompt);
+            System.out.println(response+" : "+j);
+        }
     
         boolean found = false;
     
         for(Journey journey : list) {
-            // System.out.println("Comparaison avec catalogue : " + journey); // à transformer avec Ollama
-            prompt = """
-                    Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
-                    """;
-            response = generateResponse(prompt);
-            System.out.println(response+" : "+journey);
+            if(!ollama) {
+                System.out.println("Comparaison avec catalogue : " + journey);
+            }
+            else{
+                prompt = """
+                        Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
+                        """;
+                response = generateResponse(prompt);
+                System.out.println(response+" : "+journey);
+            }
     
             // Nouvelle condition pour les Bike libres-service (departureDate == 0)
             if(journey.getStop().equals(j.getStop()) &&
@@ -220,10 +234,14 @@ public class ContractNetVente extends ContractNetResponder {
                 
                 int placesAvant = journey.getPlaces();
                 journey.setPlaces(placesAvant - 1);
-                // System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces()); // à transformer avec Ollama
-                prompt = "Rédige une phrase polie et naturelle pour dire à un utilisateur que la correspondance de voyage a été trouvée et que le nombre de places place de "+placesAvant+"à"+journey.getPlaces();
-                response = generateResponse(prompt);
-                System.out.println(response);
+                if(!ollama) {
+                    System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces());
+                }
+                else{
+                    prompt = "Rédige une phrase polie et naturelle pour dire à un utilisateur que la correspondance de voyage a été trouvée et que le nombre de places place de "+placesAvant+"à"+journey.getPlaces();
+                    response = generateResponse(prompt);
+                    System.out.println(response);
+                }
                 found = true;
                 // On ajoute un ticket pour le voyage "inverse" pour les Bike libres-service
                 if(journey.getDepartureDate() == 0) {
@@ -233,12 +251,16 @@ public class ContractNetVente extends ContractNetResponder {
         }
     
         if(!found) {
-            // System.out.println("Aucune correspondance trouvée pour ce voyage !"); // à transformer avec Ollama
-            prompt = """
-                    Write a polite and natural sentence to tell a user that no trips match their search
-                    """;
-            response = generateResponse(prompt);
-            System.out.println(response);
+            if(!ollama) {
+                System.out.println("Aucune correspondance trouvée pour ce voyage !");
+            }
+            else{
+                prompt = """
+                        Write a polite and natural sentence to tell a user that no trips match their search
+                        """;
+                response = generateResponse(prompt);
+                System.out.println(response);
+            }
         }
     }
 
@@ -247,26 +269,36 @@ public class ContractNetVente extends ContractNetResponder {
         ArrayList<Journey> list = catalog.getJourneysFrom(j.getStop());
         String prompt;
         String response;
+
+        Boolean ollama = false;
     
         if(list == null || list.isEmpty()) {
-            // System.out.println("Aucun voyage trouvé depuis : " + j.getStop()); // à transformer avec Ollama
-            prompt = """
-                    Write a polite and natural sentence to tell a user that there are no trips in the catalog
-                    """;
-            response = generateResponse(prompt);
-            System.out.println(response+" : "+j.getStart());
+            if(!ollama) {
+                System.out.println("Aucun voyage trouvé depuis : " + j.getStop());
+            }
+            else{
+                prompt = """
+                        Write a polite and natural sentence to tell a user that there are no trips in the catalog
+                        """;
+                response = generateResponse(prompt);
+                System.out.println(response+" : "+j.getStart());
+            }
             return;
         }
     
         boolean found = false;
     
         for(Journey journey : list) {
-            // System.out.println("Comparaison avec catalogue : " + journey); // à transformer avec Ollama
-            prompt = """
+            if(!ollama) {
+                System.out.println("Comparaison avec catalogue : " + journey);
+            }
+            else{
+                prompt = """
                     Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
                     """;
-            response = generateResponse(prompt);
-            System.out.println(response+" : "+journey);
+                response = generateResponse(prompt);
+                System.out.println(response+" : "+journey);
+            }
     
             // Nouvelle condition pour les Bike libres-service (departureDate == 0)
             if(journey.getStop().equals(j.getStart()) &&
@@ -274,21 +306,29 @@ public class ContractNetVente extends ContractNetResponder {
                 
                 int placesAvant = journey.getPlaces();
                 journey.setPlaces(placesAvant + 1);
-                // System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces()); // à transformer avec Ollama
-                prompt = "Rédige une phrase polie et naturelle pour dire à un utilisateur que la correspondance de voyage a été trouvée et que le nombre de places place de "+placesAvant+"à"+journey.getPlaces();
-                response = generateResponse(prompt);
-                System.out.println(response);
+                if(!ollama) {
+                    System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces());
+                }
+                else{
+                    prompt = "Rédige une phrase polie et naturelle pour dire à un utilisateur que la correspondance de voyage a été trouvée et que le nombre de places place de "+placesAvant+"à"+journey.getPlaces();
+                    response = generateResponse(prompt);
+                    System.out.println(response);
+                }
                 found = true;
             }
         }
     
         if(!found) {
-            // System.out.println("Aucune correspondance trouvée pour ce voyage !"); // à transformer avec Ollama
-            prompt = """
-                    Write a polite and natural sentence to tell a user that no trips match their search
-                    """;
-            response = generateResponse(prompt);
-            System.out.println(response);
+            if(!ollama) {
+                System.out.println("Aucune correspondance trouvée pour ce voyage !");
+            }
+            else{
+                prompt = """
+                        Write a polite and natural sentence to tell a user that no trips match their search
+                        """;
+                response = generateResponse(prompt);
+                System.out.println(response);
+            }
         }
     }
 

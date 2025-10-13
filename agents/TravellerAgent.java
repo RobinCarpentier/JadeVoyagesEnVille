@@ -145,6 +145,7 @@ public class TravellerAgent extends GuiAgent {
                     var difDuration = j1.getDuration() - j2.getDuration() / Math.max(j2.getDuration(),j1.getDuration());
                     var difCost = j1.getCost() - j2.getCost() / Math.max(j2.getCost(),j1.getCost());
                     return (int)(10*(difDuration + difCost));});
+                case "co2" -> journeys.sort(Comparator.comparingDouble(ComposedJourney::getCo2));
                 default -> journeys.sort(Comparator.comparingDouble(ComposedJourney::getCost));
             }
             myJourney = journeys.getFirst();
