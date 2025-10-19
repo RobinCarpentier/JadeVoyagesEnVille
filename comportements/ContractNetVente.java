@@ -228,9 +228,8 @@ public class ContractNetVente extends ContractNetResponder {
                 System.out.println(response+" : "+journey);
             }
     
-            // Nouvelle condition pour les Bike libres-service (departureDate == 0)
             if(journey.getStop().equals(j.getStop()) &&
-               (journey.getDepartureDate() == j.getDepartureDate() || journey.getDepartureDate() == 0)) {
+               (journey.getDepartureDate() == j.getDepartureDate()) && (journey.getMeans().equals(j.getMeans()))) {
                 
                 int placesAvant = journey.getPlaces();
                 journey.setPlaces(placesAvant - 1);
@@ -244,7 +243,7 @@ public class ContractNetVente extends ContractNetResponder {
                 }
                 found = true;
                 // On ajoute un ticket pour le voyage "inverse" pour les Bike libres-service
-                if(journey.getDepartureDate() == 0) {
+                if(journey.getMeans().equals("bike")) {
                     addTicket(j);
                 }
             }
@@ -300,9 +299,8 @@ public class ContractNetVente extends ContractNetResponder {
                 System.out.println(response+" : "+journey);
             }
     
-            // Nouvelle condition pour les Bike libres-service (departureDate == 0)
             if(journey.getStop().equals(j.getStart()) &&
-               (journey.getDepartureDate() == j.getDepartureDate() || journey.getDepartureDate() == 0)) {
+            (journey.getDepartureDate() == j.getArrivalDate()) && (journey.getMeans().equals(j.getMeans()))) {
                 
                 int placesAvant = journey.getPlaces();
                 journey.setPlaces(placesAvant + 1);

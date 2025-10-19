@@ -138,14 +138,9 @@ public class JourneysList implements Serializable {
         var list = catalog.get(start.toUpperCase());
         if (list == null) return false;
         for (Journey j : list) {
-            if ((j.departureDate >= date && j.departureDate <= Journey.addTime(date, late) && j.getPlaces() > 0)
-                    || j.means.equalsIgnoreCase("bike")) // bike can be taken anytime
+            if ((j.departureDate >= date && j.departureDate <= Journey.addTime(date, late) && j.getPlaces() > 0))
                 if (j.stop.equalsIgnoreCase(stop)) {
-                    if (j.means.equalsIgnoreCase("bike")) {
-                        copyJ = new Journey(j);
-                        copyJ.departureDate = date; // bike can be taken anytime
-                    }
-                    else copyJ = j;
+                    copyJ = j;
                     copyJ.arrivalDate = Journey.addTime(copyJ.departureDate, j.duration);
                     currentJourney.add(copyJ);
                     ComposedJourney compo = new ComposedJourney();
@@ -154,12 +149,7 @@ public class JourneysList implements Serializable {
                     currentJourney.removeLast();
                 } else {
                     if (!via.contains(j.stop.toUpperCase())) {
-                        if (j.means.equalsIgnoreCase("bike")) {
-                            copyJ = new Journey(j);
-                            copyJ.departureDate = date; // bike can be taken anytime
-                            copyJ.arrivalDate = Journey.addTime(copyJ.departureDate, j.duration);
-                        }
-                        else copyJ = j;
+                        copyJ = j;
                         currentJourney.add(copyJ);
                         findIndirectJourney(copyJ.stop.toUpperCase(), stop.toUpperCase(), copyJ.arrivalDate, late, currentJourney, via, results);
                         via.remove(copyJ.stop.toUpperCase());
