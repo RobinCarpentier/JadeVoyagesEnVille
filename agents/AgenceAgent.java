@@ -127,7 +127,13 @@ public class AgenceAgent extends GuiAgent {
             String origine = nextLine[0].trim().toUpperCase();
             String destination = nextLine[1].trim().toUpperCase();
             String means = nextLine[2].trim();
-            int departureDate = Integer.parseInt(nextLine[3].trim());
+            int departureDate;
+            if(means.equals("bike")) {
+                departureDate = 600;
+            }
+            else {
+                departureDate = Integer.parseInt(nextLine[3].trim());
+            }
             int duration = Integer.parseInt(nextLine[4].trim());
             double cost = Double.parseDouble(nextLine[5].trim());
             int co2 = Integer.parseInt(nextLine[6].trim());
@@ -149,8 +155,11 @@ public class AgenceAgent extends GuiAgent {
             catalog.addJourney(firstJourney);
             if (nbRepetitions > 0) {
                 repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
-                }
             }
+            if (means.equals("bike")) {
+                repeatJourney(departureDate, 192, 5, firstJourney);
+            }
+        }
         }
     }
 
