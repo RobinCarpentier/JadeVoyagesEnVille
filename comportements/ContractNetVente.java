@@ -15,15 +15,6 @@ import voyagesEnVille.data.JourneysList;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 
 /**
  * Journeys Seller Behaviour by contract net
@@ -44,74 +35,6 @@ public class ContractNetVente extends ContractNetResponder {
      * agent gui
      */
     private final AgenceGui window;
-
-    private static final String OLLAMA_URL = "http://localhost:11434/api/generate";
-    private static final String MODEL = "granite3.3:2b";
-
-    // Fonction utilitaire : échappe les caractères spéciaux pour JSON
-    private static String escapeJson(String text) {
-        return text
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
-    }
-
-    public static String generateResponse(String prompt) {
-        StringBuilder finalResponse = new StringBuilder();
-
-        try {
-            String safePrompt = escapeJson(prompt);
-            String json = String.format("{\"model\": \"%s\", \"prompt\": \"%s\", \"stream\": true}", MODEL, safePrompt);
-
-            URL url = new URL(OLLAMA_URL);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setDoOutput(true);
-
-            try (OutputStream os = connection.getOutputStream()) {
-                os.write(json.getBytes());
-            }
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    int start = line.indexOf("\"response\":\"");
-                    if (start != -1) {
-                        start += 12;
-                        StringBuilder sb = new StringBuilder();
-                        boolean escape = false;
-
-                        for (int i = start; i < line.length(); i++) {
-                            char c = line.charAt(i);
-
-                            if (escape) {
-                                if (c == 'n') sb.append('\n');
-                                else if (c == 'r') sb.append('\r');
-                                else if (c == 't') sb.append('\t');
-                                else sb.append(c);
-                                escape = false;
-                            } else if (c == '\\') {
-                                escape = true;
-                            } else if (c == '"') {
-                                break;
-                            } else {
-                                sb.append(c);
-                            }
-                        }
-
-                        finalResponse.append(sb.toString());
-                    }
-                }
-            }
-
-            return finalResponse.toString().trim();
-
-        } catch (Exception e) {
-            return "[Erreur Ollama : " + e.getMessage() + "]";
-        }
-    }
 
     /**
      * Initialisation du contract net
@@ -186,61 +109,26 @@ public class ContractNetVente extends ContractNetResponder {
         ArrayList<Journey> list = catalog.getJourneysFrom(j.getStart());
         String prompt;
         String response;
-
-        Boolean ollama = false;
     
         if(list == null || list.isEmpty()) {
-            if(!ollama) {
-                System.out.println("Aucun voyage trouvé depuis : " + j.getStart());
-            }
-            else {
-                prompt = """
-                        Write a polite and natural sentence to tell a user that there are no trips in the catalog
-                        """;
-                response = generateResponse(prompt);
-                System.out.println(response+" : "+j.getStart());
-            }
+            System.out.println("Aucun voyage trouvé depuis : " + j.getStart());
             return;
         }
     
-        if(!ollama) {
-            System.out.println("Tentative de suppression pour : " + j);
-        }
-        else {
-            prompt = """
-                        Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
-                        """;
-            response = generateResponse(prompt);
-            System.out.println(response+" : "+j);
-        }
+        
+        System.out.println("Tentative de suppression pour : " + j);
     
         boolean found = false;
     
         for(Journey journey : list) {
-            if(!ollama) {
-                System.out.println("Comparaison avec catalogue : " + journey);
-            }
-            else{
-                prompt = """
-                        Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
-                        """;
-                response = generateResponse(prompt);
-                System.out.println(response+" : "+journey);
-            }
+            System.out.println("Comparaison avec catalogue : " + journey);
     
             if(journey.getStop().equals(j.getStop()) &&
                (journey.getDepartureDate() == j.getDepartureDate()) && (journey.getMeans().equals(j.getMeans()))) {
                 
                 int placesAvant = journey.getPlaces();
                 journey.setPlaces(placesAvant - 1);
-                if(!ollama) {
-                    System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces());
-                }
-                else{
-                    prompt = "Rédige une phrase polie et naturelle pour dire à un utilisateur que la correspondance de voyage a été trouvée et que le nombre de places place de "+placesAvant+"à"+journey.getPlaces();
-                    response = generateResponse(prompt);
-                    System.out.println(response);
-                }
+                System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces());
                 found = true;
                 // On ajoute un ticket pour le voyage "inverse" pour les Bike libres-service
                 if(journey.getMeans().equals("bike")) {
@@ -250,16 +138,7 @@ public class ContractNetVente extends ContractNetResponder {
         }
     
         if(!found) {
-            if(!ollama) {
-                System.out.println("Aucune correspondance trouvée pour ce voyage !");
-            }
-            else{
-                prompt = """
-                        Write a polite and natural sentence to tell a user that no trips match their search
-                        """;
-                response = generateResponse(prompt);
-                System.out.println(response);
-            }
+            System.out.println("Aucune correspondance trouvée pour ce voyage !");
         }
     }
 
@@ -268,65 +147,29 @@ public class ContractNetVente extends ContractNetResponder {
         ArrayList<Journey> list = catalog.getJourneysFrom(j.getStop());
         String prompt;
         String response;
-
-        Boolean ollama = false;
     
         if(list == null || list.isEmpty()) {
-            if(!ollama) {
-                System.out.println("Aucun voyage trouvé depuis : " + j.getStop());
-            }
-            else{
-                prompt = """
-                        Write a polite and natural sentence to tell a user that there are no trips in the catalog
-                        """;
-                response = generateResponse(prompt);
-                System.out.println(response+" : "+j.getStart());
-            }
+            System.out.println("Aucun voyage trouvé depuis : " + j.getStop());
             return;
         }
     
         boolean found = false;
     
         for(Journey journey : list) {
-            if(!ollama) {
-                System.out.println("Comparaison avec catalogue : " + journey);
-            }
-            else{
-                prompt = """
-                    Write a polite and natural sentence to tell a user that they are going to collect a ticket from the trip
-                    """;
-                response = generateResponse(prompt);
-                System.out.println(response+" : "+journey);
-            }
+            System.out.println("Comparaison avec catalogue : " + journey);
     
             if(journey.getStop().equals(j.getStart()) &&
             (journey.getDepartureDate() == j.getArrivalDate()) && (journey.getMeans().equals(j.getMeans()))) {
                 
                 int placesAvant = journey.getPlaces();
                 journey.setPlaces(placesAvant + 1);
-                if(!ollama) {
-                    System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces());
-                }
-                else{
-                    prompt = "Rédige une phrase polie et naturelle pour dire à un utilisateur que la correspondance de voyage a été trouvée et que le nombre de places place de "+placesAvant+"à"+journey.getPlaces();
-                    response = generateResponse(prompt);
-                    System.out.println(response);
-                }
+                System.out.println("  => Correspondance trouvée ! Places avant : " + placesAvant + ", après : " + journey.getPlaces());
                 found = true;
             }
         }
     
         if(!found) {
-            if(!ollama) {
-                System.out.println("Aucune correspondance trouvée pour ce voyage !");
-            }
-            else{
-                prompt = """
-                        Write a polite and natural sentence to tell a user that no trips match their search
-                        """;
-                response = generateResponse(prompt);
-                System.out.println(response);
-            }
+            System.out.println("Aucune correspondance trouvée pour ce voyage !");
         }
     }
 

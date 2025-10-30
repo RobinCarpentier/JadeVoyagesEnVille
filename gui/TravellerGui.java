@@ -34,7 +34,7 @@ public class TravellerGui extends JFrame {
     private int time;
 
     public TravellerGui(TravellerAgent a) {
-        this.setBounds(10, 10, 600, 200);
+        this.setBounds(10, 10, 600, 450);
 
         myAgent = a;
         if (a != null)
@@ -48,6 +48,9 @@ public class TravellerGui extends JFrame {
         JScrollPane jScrollPane = new JScrollPane(jTextArea);
         getContentPane().add(BorderLayout.CENTER, jScrollPane);
 
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout());
+
         JPanel p = new JPanel();
         p.setLayout(new GridLayout(0, 4, 0, 0));
         p.add(new JLabel("From:"));
@@ -58,7 +61,37 @@ public class TravellerGui extends JFrame {
 
         p.add(new JLabel("Criteria"));
 
-        getContentPane().add(p, BorderLayout.SOUTH);
+        // --- Checkbox pour activer/désactiver Ollama ---
+        JCheckBox ollamaCheck = new JCheckBox("Activer Ollama");
+        ollamaCheck.addActionListener(event -> {
+            boolean useOllama = ollamaCheck.isSelected();
+            println("[Mode Ollama] " + (useOllama ? "Activé" : "Désactivé"));
+        });
+        mainPanel.add(ollamaCheck, BorderLayout.NORTH);
+
+        // --- Zone de texte pour la demande en langage naturel ---
+        JPanel naturalPanel = new JPanel();
+        naturalPanel.setLayout(new BorderLayout());
+        JLabel naturalLabel = new JLabel("Demande en langage naturel :");
+        JTextField naturalField = new JTextField();
+        JButton naturalButton = new JButton("Envoyer");
+
+        naturalButton.addActionListener(event -> {
+            String sentence = naturalField.getText().trim();
+            if (!sentence.isEmpty()) {
+                GuiEvent guiEv = new GuiEvent(this, TravellerAgent.NATURAL_REQUEST);
+                guiEv.addParameter(sentence);
+                guiEv.addParameter(ollamaCheck.isSelected());
+                myAgent.postGuiEvent(guiEv);
+            } else {
+                JOptionPane.showMessageDialog(this, "Veuillez entrer une phrase.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        naturalPanel.add(naturalLabel, BorderLayout.NORTH);
+        naturalPanel.add(naturalField, BorderLayout.CENTER);
+        naturalPanel.add(naturalButton, BorderLayout.EAST);
+        getContentPane().add(naturalPanel, BorderLayout.NORTH);
 
         JButton addButton = new JButton("Buy");
         addButton.addActionListener(event -> {
@@ -75,6 +108,7 @@ public class TravellerGui extends JFrame {
                 guiEv.addParameter(arrival);
                 guiEv.addParameter(time);
                 guiEv.addParameter(jListCriteria.getSelectedItem());
+                guiEv.addParameter(ollamaCheck.isSelected());
                 myAgent.postGuiEvent(guiEv);
                 // END SEND AN GUI EVENT TO THE AGENT !!!
             } catch (Exception e) {
@@ -115,6 +149,10 @@ public class TravellerGui extends JFrame {
         p.add(addButton);
         p.add(new JLabel());
         p.add(new JLabel("Arrival"));
+
+        mainPanel.add(p, BorderLayout.CENTER);
+
+        getContentPane().add(mainPanel, BorderLayout.SOUTH);
 
         // Make the agent terminate when the user closes
         // the GUI using the button on the upper right corner

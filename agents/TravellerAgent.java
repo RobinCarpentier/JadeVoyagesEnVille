@@ -15,11 +15,16 @@ import voyagesEnVille.data.JourneysList;
 import voyagesEnVille.gui.TravellerGui;
 
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.OptionalDouble;
-import java.util.stream.Stream;
+
+import org.json.JSONObject;
 
 /**
  * Journey searcher
@@ -35,6 +40,8 @@ public class TravellerAgent extends GuiAgent {
      * code pour achat de livre par la gui
      */
     public static final int BUY_TRAVEL = 1;
+
+    public static final int NATURAL_REQUEST = 2;
 
     /**
      * liste des vendeurs
@@ -65,6 +72,84 @@ public class TravellerAgent extends GuiAgent {
      * gui
      */
     private TravellerGui window;
+
+    private static final String OLLAMA_URL = "http://localhost:11434/api/generate";
+    private static final String MODEL = "granite3.3:2b";
+
+    // Fonction utilitaire : échappe les caractères spéciaux pour JSON
+    private static String escapeJson(String text) {
+        return text
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
+
+    public static String generateResponse(String prompt) {
+        StringBuilder finalResponse = new StringBuilder();
+
+        try {
+            String safePrompt = escapeJson(prompt);
+            String json = String.format("{\"model\": \"%s\", \"prompt\": \"%s\", \"stream\": true}", MODEL, safePrompt);
+
+            URL url = new URL(OLLAMA_URL);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true);
+
+            try (OutputStream os = connection.getOutputStream()) {
+                os.write(json.getBytes());
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    int start = line.indexOf("\"response\":\"");
+                    if (start != -1) {
+                        start += 12;
+                        StringBuilder sb = new StringBuilder();
+                        boolean escape = false;
+
+                        for (int i = start; i < line.length(); i++) {
+                            char c = line.charAt(i);
+
+                            if (escape) {
+                                if (c == 'n') sb.append('\n');
+                                else if (c == 'r') sb.append('\r');
+                                else if (c == 't') sb.append('\t');
+                                else sb.append(c);
+                                escape = false;
+                            } else if (c == '\\') {
+                                escape = true;
+                            } else if (c == '"') {
+                                break;
+                            } else {
+                                sb.append(c);
+                            }
+                        }
+
+                        finalResponse.append(sb.toString());
+                    }
+                }
+            }
+
+            return finalResponse.toString().trim();
+
+        } catch (Exception e) {
+            return "[Erreur Ollama : " + e.getMessage() + "]";
+        }
+    }
+
+    private void parlerOllama(String message) {
+        String prompt = String.format("""
+            Rephrase this message in a natural, polite, and fluent sentence in French, 
+            as if it were a travel assistant speaking to the user:
+            "%s"
+            """, message);
+        String response = generateResponse(prompt);
+        println(response);
+    }
 
     /**
      * Initialisation de l'agent
@@ -114,7 +199,6 @@ public class TravellerAgent extends GuiAgent {
 
     }
 
-
     /**
      * compute a composed journey from a departure to an arrival point
      * @param from       departure point
@@ -123,14 +207,19 @@ public class TravellerAgent extends GuiAgent {
      * @param preference preference for the choice of the journey (cost, confort, duration, duration-cost)
      * */
     public void computeComposedJourney(final String from, final String to, final int departure,
-                                       final String preference) {
+                                       final String preference, boolean ollama) {
         final List<ComposedJourney> journeys = new ArrayList<>();
         //recherche de trajets ac tps d'attentes entre via = 60mn
         final boolean result = catalogs.findIndirectJourney(from, to, departure, 60, new ArrayList<>(),
                 new ArrayList<>(), journeys);
 
         if (!result) {
-            println("no journey found !!!");
+            if (!ollama) {
+                println("no journey found !!!");
+            }
+            else {
+                parlerOllama("no journey found !!!");
+            }
         }
         if (result) {
             //oter les voyages demarrant trop tard (1h30 apres la date de depart souhaitee)
@@ -149,7 +238,12 @@ public class TravellerAgent extends GuiAgent {
                 default -> journeys.sort(Comparator.comparingDouble(ComposedJourney::getCost));
             }
             myJourney = journeys.getFirst();
-            println("I choose this journey : " + myJourney);
+            if (!ollama) {
+                println("I choose this journey : " + myJourney);
+            }
+            else {
+                parlerOllama("I choose this journey : " + myJourney);
+            }
         }
     }
 
@@ -162,9 +256,17 @@ public class TravellerAgent extends GuiAgent {
             doDelete();
         }
         if (eventFromGui.getType() == TravellerAgent.BUY_TRAVEL) {
+            boolean ollama = (boolean) eventFromGui.getParameter(4);
+
             addBehaviour(new ContractNetAchat(this, new ACLMessage(ACLMessage.CFP),
                     (String) eventFromGui.getParameter(0), (String) eventFromGui.getParameter(1),
-                    (Integer) eventFromGui.getParameter(2), (String) eventFromGui.getParameter(3)));
+                    (Integer) eventFromGui.getParameter(2), (String) eventFromGui.getParameter(3), ollama));
+        }
+        if (eventFromGui.getType() == TravellerAgent.NATURAL_REQUEST) {
+            String sentence = (String) eventFromGui.getParameter(0);
+            boolean ollama = (boolean) eventFromGui.getParameter(1);
+
+            addBehaviour(new ContractNetAchat(this, new ACLMessage(ACLMessage.CFP), sentence, ollama));
         }
     }
 
