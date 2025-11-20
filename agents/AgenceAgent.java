@@ -16,6 +16,7 @@ import jade.gui.GuiAgent;
 import jade.gui.GuiEvent;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import voyagesEnVille.Meteo;
 import voyagesEnVille.comportements.ContractNetVente;
 import voyagesEnVille.data.Journey;
 import voyagesEnVille.data.JourneysList;
@@ -67,6 +68,14 @@ public class AgenceAgent extends GuiAgent {
         addBehaviour(new ReceiverBehaviour(this, -1, MessageTemplate.MatchTopic(topic), true, (a, m)->{
                     println("Message recu sur le topic " + topic.getLocalName() + ". Contenu " + m.getContent()
                             + " emis par :  " + m.getSender().getLocalName());
+
+            String[] points = m.getContent().split(",");
+            String start = points[0];
+            String stop = points[1];
+
+            println("Start : " + start);
+
+            catalog.removeIf(j -> j.getStart().equalsIgnoreCase(start) && j.getStop().equalsIgnoreCase(stop));
                 }));
 
         //FIN REGLAGE ECOUTE DE LA RADIO
@@ -114,6 +123,17 @@ public class AgenceAgent extends GuiAgent {
      * @param file name of the cvs file
      */
     private void fromCSV2Catalog(final String file) {
+        Meteo service = new Meteo();
+
+        Meteo.WeatherData weather = service.getWeatherByCity("Alta");
+        if (weather != null && weather.isValid()) {
+            System.out.println("\n" + weather.getMainCondition());
+            System.out.println("\n" + weather.getTemperature());
+
+        } else {
+            System.out.println("Impossible de récupérer les données météo pour Valenciennes");
+        }
+
         List<String> lines = null;
         try {lines = Files.readAllLines(new File(file).toPath());}
         catch (IOException e) {
@@ -123,43 +143,48 @@ public class AgenceAgent extends GuiAgent {
         {
             int nbLines = lines.size();
             for(int i=1; i<nbLines; i++){
-            String[] nextLine = lines.get(i).split(",");
-            String origine = nextLine[0].trim().toUpperCase();
-            String destination = nextLine[1].trim().toUpperCase();
-            String means = nextLine[2].trim();
-            int departureDate;
-            if(means.equals("bike")) {
-                departureDate = 600;
+                String[] nextLine = lines.get(i).split(",");
+                String origine = nextLine[0].trim().toUpperCase();
+                String destination = nextLine[1].trim().toUpperCase();
+                String means = nextLine[2].trim();
+                int departureDate = Integer.parseInt(nextLine[3].trim());
+                int duration = Integer.parseInt(nextLine[4].trim());
+                if (weather.getMainCondition().equals("Snow") && means.equals("car")){
+                    duration = (int) (duration * 1.5);
+                }
+
+                if (weather.getWindSpeed() >= 10 && means.equals("bike")){
+                    duration = (int) (duration * 1.5);
+                }
+
+                double cost = Double.parseDouble(nextLine[5].trim());
+                if (weather.getWindSpeed() >= 10 && means.equals("car")){
+                    cost = cost * 1.2;
+                }
+                int co2 = Integer.parseInt(nextLine[6].trim());
+                int confort = Integer.parseInt(nextLine[7].trim());
+                int nbParams = nextLine.length;
+                int nbRepetitions = (nbParams < 9) ? 0 : Integer.parseInt(nextLine[8].trim());
+                int frequence = (nbRepetitions == 0) ? 0 : Integer.parseInt(nextLine[9].trim());
+                Journey firstJourney = new Journey(origine, destination, means, departureDate, duration, cost, co2, confort);
+                firstJourney.setProposedBy(this.getLocalName());
+                int nbPlaces = switch (means) {
+                    case "bike" -> 20;
+                    case "car" -> 3;
+                    case "bus" -> 50;
+                    case "tram" -> 200;
+                    default -> 0;
+                };
+                firstJourney.setPlaces(nbPlaces);
+                window.println(firstJourney.toString());
+                if (weather.getMainCondition() != "Rain" && weather.getWindSpeed() >= 50){
+                    catalog.addJourney(firstJourney);
+                }
+
+                if (nbRepetitions > 0) {
+                    repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
+                }
             }
-            else {
-                departureDate = Integer.parseInt(nextLine[3].trim());
-            }
-            int duration = Integer.parseInt(nextLine[4].trim());
-            double cost = Double.parseDouble(nextLine[5].trim());
-            int co2 = Integer.parseInt(nextLine[6].trim());
-            int confort = Integer.parseInt(nextLine[7].trim());
-            int nbParams = nextLine.length;
-            int nbRepetitions = (nbParams < 9) ? 0 : Integer.parseInt(nextLine[8].trim());
-            int frequence = (nbRepetitions == 0) ? 0 : Integer.parseInt(nextLine[9].trim());
-            Journey firstJourney = new Journey(origine, destination, means, departureDate, duration, cost, co2, confort);
-            firstJourney.setProposedBy(this.getLocalName());
-            int nbPlaces = switch (means) {
-                case "bike" -> 50;
-                case "car" -> 3;
-                case "bus" -> 50;
-                case "tram" -> 200;
-                default -> 0;
-            };
-            firstJourney.setPlaces(nbPlaces);
-            window.println(firstJourney.toString());
-            catalog.addJourney(firstJourney);
-            if (nbRepetitions > 0) {
-                repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
-            }
-            if (means.equals("bike")) {
-                repeatJourney(departureDate, 192, 5, firstJourney);
-            }
-        }
         }
     }
 
