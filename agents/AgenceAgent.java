@@ -69,13 +69,13 @@ public class AgenceAgent extends GuiAgent {
                     println("Message recu sur le topic " + topic.getLocalName() + ". Contenu " + m.getContent()
                             + " emis par :  " + m.getSender().getLocalName());
 
-            String[] points = m.getContent().split(",");
-            String start = points[0];
-            String stop = points[1];
+                    String[] points = m.getContent().split(",");
+                    String start = points[0];
+                    String stop = points[1];
 
-            println("Start : " + start);
+                    println("Start : " + start);
 
-            catalog.removeIf(j -> j.getStart().equalsIgnoreCase(start) && j.getStop().equalsIgnoreCase(stop));
+                    catalog.removeIf(j -> j.getStart().equalsIgnoreCase(start) && j.getStop().equalsIgnoreCase(stop));
                 }));
 
         //FIN REGLAGE ECOUTE DE LA RADIO
@@ -124,14 +124,14 @@ public class AgenceAgent extends GuiAgent {
      */
     private void fromCSV2Catalog(final String file) {
         Meteo service = new Meteo();
+        String city = "Vlora";
 
-        Meteo.WeatherData weather = service.getWeatherByCity("Alta");
+        Meteo.WeatherData weather = service.getWeatherByCity(city);
         if (weather != null && weather.isValid()) {
             System.out.println("\n" + weather.getMainCondition());
-            System.out.println("\n" + weather.getTemperature());
 
         } else {
-            System.out.println("Impossible de récupérer les données météo pour Valenciennes");
+            System.out.println("Impossible de récupérer les données météo pour " + city);
         }
 
         List<String> lines = null;
@@ -149,18 +149,16 @@ public class AgenceAgent extends GuiAgent {
                 String means = nextLine[2].trim();
                 int departureDate = Integer.parseInt(nextLine[3].trim());
                 int duration = Integer.parseInt(nextLine[4].trim());
+                double cost = Double.parseDouble(nextLine[5].trim());
                 if (weather.getMainCondition().equals("Snow") && means.equals("car")){
                     duration = (int) (duration * 1.5);
+                    cost = cost * 1.2;
                 }
 
                 if (weather.getWindSpeed() >= 10 && means.equals("bike")){
                     duration = (int) (duration * 1.5);
                 }
 
-                double cost = Double.parseDouble(nextLine[5].trim());
-                if (weather.getWindSpeed() >= 10 && means.equals("car")){
-                    cost = cost * 1.2;
-                }
                 int co2 = Integer.parseInt(nextLine[6].trim());
                 int confort = Integer.parseInt(nextLine[7].trim());
                 int nbParams = nextLine.length;
@@ -175,14 +173,20 @@ public class AgenceAgent extends GuiAgent {
                     case "tram" -> 200;
                     default -> 0;
                 };
-                firstJourney.setPlaces(nbPlaces);
-                window.println(firstJourney.toString());
-                if (weather.getMainCondition() != "Rain" && weather.getWindSpeed() >= 50){
-                    catalog.addJourney(firstJourney);
+
+                if (means.equals("bike") && (weather.getMainCondition().equals("Rain") || weather.getWindSpeed() <= 20)) {
+                    nbPlaces = 0;
+                    window.println("Aucun trajet en vélo à cause de la neige");
                 }
 
-                if (nbRepetitions > 0) {
-                    repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
+                firstJourney.setPlaces(nbPlaces);
+
+                if ((means.equals("bike") && !weather.getMainCondition().equals("Rain") && weather.getWindSpeed() <= 20) || !means.equals("bike")){
+                    catalog.addJourney(firstJourney);
+                    if (nbRepetitions > 0) {
+                        repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
+                    }
+                    window.println(firstJourney.toString());
                 }
             }
         }
