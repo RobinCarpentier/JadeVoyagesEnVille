@@ -176,7 +176,7 @@ public class AgenceAgent extends GuiAgent {
 
                 if (means.equals("bike") && (weather.getMainCondition().equals("Rain") || weather.getWindSpeed() <= 20)) {
                     nbPlaces = 0;
-                    window.println("Aucun trajet en vélo à cause de la neige");
+                    window.println("Aucun trajet en vélo à cause de la pluie et/ou vent");
                 }
 
                 firstJourney.setPlaces(nbPlaces);
