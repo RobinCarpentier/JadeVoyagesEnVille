@@ -125,13 +125,14 @@ public class AgenceAgent extends GuiAgent {
      */
     private void fromCSV2Catalog(final String file) {
         Meteo service = new Meteo();
+        String city = "Vlora";
 
-        Meteo.WeatherData weather = service.getWeatherByCity("Valenciennes");
+        Meteo.WeatherData weather = service.getWeatherByCity(city);
         if (weather != null && weather.isValid()) {
-            System.out.println("\n" + weather.getWindSpeed());
+            System.out.println("\n" + weather.getMainCondition());
 
         } else {
-            System.out.println("Impossible de récupérer les données météo pour Valenciennes");
+            System.out.println("Impossible de récupérer les données météo pour " + city);
         }
 
         List<String> lines = null;
@@ -149,18 +150,16 @@ public class AgenceAgent extends GuiAgent {
             String means = nextLine[2].trim();
             int departureDate = Integer.parseInt(nextLine[3].trim());
             int duration = Integer.parseInt(nextLine[4].trim());
-            if (weather.getMainCondition().equals("Snows") && means.equals("car")){
+            double cost = Double.parseDouble(nextLine[5].trim());
+            if (weather.getMainCondition().equals("Snow") && means.equals("car")){
                 duration = (int) (duration * 1.5);
+                cost = cost * 1.2;
             }
 
             if (weather.getWindSpeed() >= 10 && means.equals("bike")){
                 duration = (int) (duration * 1.5);
             }
 
-            double cost = Double.parseDouble(nextLine[5].trim());
-            if (weather.getWindSpeed() >= 10 && means.equals("car")){
-                cost = cost * 1.2;
-            }
             int co2 = Integer.parseInt(nextLine[6].trim());
             int confort = Integer.parseInt(nextLine[7].trim());
             int nbParams = nextLine.length;
@@ -175,15 +174,21 @@ public class AgenceAgent extends GuiAgent {
                 case "tram" -> 200;
                 default -> 0;
             };
-            firstJourney.setPlaces(nbPlaces);
-            window.println(firstJourney.toString());
-            if (weather.getMainCondition() != "Rain" && weather.getWindSpeed() >= 50){
-                catalog.addJourney(firstJourney);
+
+            if (means.equals("bike") && (weather.getMainCondition().equals("Rain") || weather.getWindSpeed() <= 20)) {
+                nbPlaces = 0;
+                window.println("Aucun trajet en vélo à cause de la neige");
             }
 
-            if (nbRepetitions > 0) {
-                repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
+            firstJourney.setPlaces(nbPlaces);
+
+            if ((means.equals("bike") && !weather.getMainCondition().equals("Rain") && weather.getWindSpeed() <= 20) || !means.equals("bike")){
+                catalog.addJourney(firstJourney);
+                if (nbRepetitions > 0) {
+                    repeatJourney(departureDate, nbRepetitions, frequence, firstJourney);
                 }
+                window.println(firstJourney.toString());
+            }
             }
         }
     }
